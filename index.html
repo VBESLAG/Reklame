@@ -7,8 +7,7 @@
 
   <!-- XLSX for Excel-eksport -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- html2pdf for PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+  <!-- (PDF-biblioteket er fjernet, nå bruker vi utskriftsfunksjon) -->
 
   <style>
     /* Grunnleggende oppsett */
@@ -152,7 +151,7 @@
     }
     .invoice-summary p { margin: 5px 0; }
 
-    /* Bunnmeny – Fjernet utskriftsknapp for kvittering */
+    /* Bunnmeny – Fjernet utskriftsknapp for kvittering/PDF */
     .bottom-nav {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -197,73 +196,7 @@
     }
     .page-footer .footer-column p { margin: 2px 0; }
 
-    /* PDF – Full A4-bredde med ordrebekreftelsesutseende */
-    #pdfContainer {
-      width: 190mm;
-      max-width: 100%;
-      margin: 0 auto;
-      padding: 20mm;
-      font-family: Arial, sans-serif;
-      color: #333;
-      position: relative;
-      min-height: 277mm;
-      background: #fff;  /* Sørger for hvit bakgrunn */
-    }
-    #pdfContainer h1 { text-align: left; margin-bottom: 10mm; }
-    #pdfContainer .invoice-header {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 10px;
-      margin-bottom: 10mm;
-    }
-    #pdfContainer table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: auto;
-      word-wrap: break-word;
-    }
-    #pdfContainer table th,
-    #pdfContainer table td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
-      font-size: 12px;
-      white-space: normal;
-    }
-    #pdfContainer table th { background: #f2f2f2; }
-    #pdfContainer .totals { margin-top: 10mm; text-align: right; font-size: 14px; }
-    #pdfFooter {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      font-size: 10px;
-      text-align: center;
-      border-top: 1px solid #ccc;
-      padding-top: 5mm;
-    }
-
-    /* Scroll-to-top */
-    .scroll-to-top {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #4CAF50;
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      padding: 10px 15px;
-      font-size: 16px;
-      box-shadow: 0 5px 10px rgba(0,0,0,0.2);
-      cursor: pointer;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s, visibility 0.3s;
-      z-index: 1000;
-    }
-    .scroll-to-top.show { opacity: 1; visibility: visible; }
-
-    /* Print-stiler */
+    /* PDF/utskriftsklargjøring – For utskrift skal siden tilpasses A4 */
     @media print {
       button, .row, select, input, .advanced-toggle, .format-options {
         display: none !important;
@@ -307,7 +240,7 @@
       <div class="content">
         <h2>Reklameprodukter Kalkulator</h2>
         <p class="subtitle">
-          demo av Steffen Vangen
+          Pris per m² = (innkjøpspris × 3 × 1.15). Montering: 900 kr/time × 1.15. Laminering: 50 kr/m² × 1.15.
         </p>
         <div id="calculators"></div>
       </div>
@@ -327,12 +260,11 @@
           <button class="update-button" onmouseenter="openFormatOptions()">Utskrift / Eksport</button>
           <div id="formatOptions" class="format-options">
             <button onclick="exportToExcelWithDetails()">Eksporter til Excel</button>
-            <button onclick="generatePDF()">Lag PDF</button>
+            <button onclick="printInvoice()">Skriv ut</button>
             <button onclick="lagTilbudsTekst()">Kopier tekst</button>
-            <!-- Funksjonen "Skriv ut kvittering" er fjernet -->
           </div>
         </div>
-        <!-- TO SJEKKBOKSER: Oppstart/klisjekostnad og Ekspedisjonsavgift -->
+        <!-- To separate sjekkbokser for faste gebyrer -->
         <label class="checkbox-label">
           <input type="checkbox" id="oppstartCheckbox" onchange="toggleOppstartCheckbox(this)" checked>
           Oppstart/klisjekostnad (300 kr)
@@ -377,7 +309,7 @@
 
     // 3) VARIABLER
     let calculatorCount = 0, customCount = 0;
-    // Erstatt smallOrderEnabled med to separate variabler:
+    // Bruk to separate variabler for de faste gebyrene:
     let oppstartEnabled = true;
     let ekspedisjonEnabled = true;
     let multiLengths = {};
@@ -573,7 +505,7 @@
         let withDisc = parseFloat(calc.dataset.withDiscount) || 0;
         sumNo += noDisc; sumWith += withDisc;
       });
-      // Legger til de to faste gebyrene – kun dersom de er aktivert via sjekkboksene
+      // Legger til de to faste gebyrene – bare dersom de er aktivert via sjekkbokser
       let fixedFees = 0;
       if(oppstartEnabled) fixedFees += 300;
       if(ekspedisjonEnabled) fixedFees += 80;
@@ -587,7 +519,7 @@
       document.getElementById("invoiceMva").innerText = `MVA (25%): ${mva} kr`;
       document.getElementById("invoiceTotalIncMva").innerText = `Total inkl. mva: ${totalInk} kr`;
     }
-    // Erstatt toggleSmallOrderCheckbox med to funksjoner:
+    // To funksjoner for å håndtere de faste gebyrene:
     function toggleOppstartCheckbox(chk) {
       oppstartEnabled = chk.checked;
       updateTotal();
@@ -755,12 +687,8 @@
       XLSX.writeFile(wb, `Reklameprodukter_${formattedDate}.xlsx`);
     }
 
-    function generatePDF(){
-      // Oppdatert PDF for ordrebekreftelse
-      const sumEks = document.getElementById("invoiceTotalExMva").innerText.replace(/\D+/g,"");
-      const mva = document.getElementById("invoiceMva").innerText.replace(/\D+/g,"");
-      const ink = document.getElementById("invoiceTotalIncMva").innerText.replace(/\D+/g,"");
-      const dateText = document.getElementById("orderDate").innerText;
+    // NY: UTSKRIFTSFUNKSJON for A4-vennlig utskrift
+    function printInvoice(){
       let rowsHTML = "";
       const calcs = document.querySelectorAll(".calculator");
       calcs.forEach((calc, idx) => {
@@ -815,64 +743,71 @@
         `;
       });
       
-      const pdfHtml = `
-        <div id="pdfContainer">
-          <div class="invoice-header">
-            <div>
+      const sumEks = document.getElementById("invoiceTotalExMva").innerText.replace(/\D+/g,"");
+      const mva = document.getElementById("invoiceMva").innerText.replace(/\D+/g,"");
+      const totalInk = document.getElementById("invoiceTotalIncMva").innerText.replace(/\D+/g,"");
+      const dateText = document.getElementById("orderDate").innerText;
+      
+      const printHtml = `
+        <html>
+        <head>
+          <title>Ordrebekreftelse - Reklameprodukter</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+            .invoice-container { padding: 20mm; }
+            .invoice-header { border-bottom: 1px solid #ccc; margin-bottom: 10mm; }
+            .invoice-header h1 { margin: 0; font-size: 24px; }
+            .invoice-header p { margin: 2px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            table th, table td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
+            table th { background: #f2f2f2; }
+            .totals { margin-top: 10mm; text-align: right; font-size: 14px; }
+            @page { size: A4; margin: 15mm; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-container">
+            <div class="invoice-header">
               <h1>Reklameprodukter</h1>
-              <p>Eksempelveien 1</p>
-              <p>0000 Sted</p>
-              <p>Tlf: 12 34 56 78</p>
-              <p>Email: post@reklameprodukter.no</p>
-            </div>
-            <div>
+              <p>Eksempelveien 1, 0000 Sted</p>
+              <p>Tlf: 12 34 56 78 | Email: post@reklameprodukter.no</p>
               <p>Dato: ${dateText}</p>
             </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Beskrivelse</th>
+                  <th>Kategori</th>
+                  <th>Bredde (m)</th>
+                  <th>Høyde (m)</th>
+                  <th>Antall</th>
+                  <th>Detaljer</th>
+                  <th>Sum eks. mva</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHTML}
+              </tbody>
+            </table>
+            <div class="totals">
+              <p>Sum eks. mva: ${sumEks} kr</p>
+              <p>MVA (25%): ${mva} kr</p>
+              <p><strong>Total inkl. mva: ${totalInk} kr</strong></p>
+            </div>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Beskrivelse</th>
-                <th>Kategori</th>
-                <th>Bredde (m)</th>
-                <th>Høyde (m)</th>
-                <th>Antall</th>
-                <th>Detaljer</th>
-                <th>Sum eks. mva</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHTML}
-            </tbody>
-          </table>
-          <div class="totals">
-            <p>Sum eks. mva: ${sumEks} kr</p>
-            <p>MVA (25%): ${mva} kr</p>
-            <p><strong>Total inkl. mva: ${ink} kr</strong></p>
-          </div>
-          <div id="pdfFooter">
-            <p>Ordrebekreftelse generert av Reklameprodukter</p>
-          </div>
-        </div>
+        </body>
+        </html>
       `;
       
-      // I stedet for display:none, plasser elementet utenfor synlig område slik at html2canvas kan fange det opp
-      const tempDiv = document.createElement("div");
-      tempDiv.style.position = "absolute";
-      tempDiv.style.left = "-9999px";
-      tempDiv.innerHTML = pdfHtml;
-      document.body.appendChild(tempDiv);
-      
-      const opt = {
-        margin: 10,
-        filename: `Ordrebekreftelse_${(new Date()).toLocaleDateString("no-NO")}.pdf`,
-        image: { type:'jpeg', quality:0.98 },
-        html2canvas: { scale:2 },
-        jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
-      };
-      html2pdf().set(opt).from(tempDiv).save().then(() => {
-        document.body.removeChild(tempDiv);
-      });
+      const printWindow = window.open("", "PrintWindow", "width=800,height=600");
+      printWindow.document.open();
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(function(){
+        printWindow.print();
+        printWindow.close();
+      }, 500);
     }
 
     function lagTilbudsTekst(){
